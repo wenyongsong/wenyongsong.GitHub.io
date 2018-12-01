@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <title>Document</title>
+  <link rel="stylesheet" href="./css/index.css">
+</head>
+
+<body>
+  <section class="todoapp">
+    <header class="header">
+      <h1>备忘录</h1>
+      <!-- 事件绑定 双向数据绑定 -->
+      <input autofocus="autofocus" autocomplete="off" placeholder="你想干啥!" class="new-todo" @keyup.enter="insertTodo"
+        v-model.trim="inputTodo" />
+    </header>
+    <section class="main">
+      <input type="checkbox" class="toggle-all" v-model="isCheckAll" @change="setCheckAll" />
+      <ul class="todo-list">
+        <li class="todo" :class="{completed:item.completed,editing:item==edittodo}" v-for="(item, index) in currentlist"
+          @dblclick="enterEditing(item)">
+          <div class="view">
+            <input type="checkbox" class="toggle" v-model="item.completed" />
+            <label>{{item.content}}</label> <button @click="deltodo(index)" class="destroy"></button>
+          </div>
+          <!-- 编辑的文本框 -->
+          <input type="text" class="edit" @blur="edittodo=undefined" @keyup.enter="edittodo=undefined" v-model="item.content" />
+        </li>
+      </ul>
+    </section>
+    <footer class="footer">
+      <span class="todo-count" v-show="uncheckedNum!=0"><strong>{{uncheckedNum}}</strong>{{uncheckedNum>1?"items":"item"}}
+        left</span>
+      <ul class="filters">
+        <li><a href="#/all" :class="{selected:status=='All'}" @click="status='All'">All</a></li>
+        <li><a href="#/active" :class="{selected:status=='Active'}" @click="status='Active'">Active</a></li>
+        <li><a href="#/completed" :class="{selected:status=='Completed'}" @click="status='Completed'">Completed</a></li>
+      </ul>
+      <button @click="clearList" class="clear-completed">Clear completed</button>
+    </footer>
+  </section>
+  <footer class="info">
+    <p>双击进入编辑状态</p>
+    <p>感谢 <a href="http://evanyou.me">Evan You</a></p>
+    <p>感谢 <a href="http://todomvc.com">TodoMVC</a></p>
+    <!-- github 新建一个仓库 仓库的名字 必须是 自己的用户名.github.io
+            上传一个 静态页面 首页index.html
+        -->
+    <p> <a href="https://autumnfish.github.io/">关于我</a></p>
+  </footer>
+</body>
+
+</html>
+<!-- 开发环境版本，包含了有帮助的命令行警告 -->
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script>
+  let app = new Vue({
+    el: '.todoapp',
+    data: {
+      // 输入的内容
+      inputTodo: '',
+      // 待办事项数组
+      todoList: [],
+      isCheckAll: false,
+      // 定义一个字段
+      status: "All",
+      // 编辑的对象
+      edittodo: undefined,
+    },
+    methods: {
+      // 插入待办的事项
+      insertTodo() {
+        // 获取内容
+        // 插入到数组中
+        if (this.inputTodo == '') {
+          alert('内容不能为空')
+          return;
+        }
+        this.todoList.unshift({
+          // 内容
+          content: this.inputTodo,
+          // 是否已完成
+          completed: false
+        })
+        // 输入内容
+        console.log(this.todoList);
+        this.inputTodo = ''
+      },
+      deltodo(index) {
+        if (window.confirm('你确定真的要删我吗?删了就不能后悔了哟````')) {
+          this.todoList.splice(index, 1)
+        }
+      },
+      setCheckAll() {
+        // console.log(this.isCheckAll)
+        this.todoList.forEach(v => {
+          v.completed = this.isCheckAll
+        });
+      },
+      clearList() {
+        if (window.confirm('你确定要删除吗')) {
+          // 这个会全部删除
+          // this.todoList=[]
+          // 找到完成然后删除
+          for (let i = this.todoList.length - 1; i >= 0; i--) {
+            if (this.todoList[i].completed == true) {
+              this.todoList.splice(i, 1)
+            }
+          }
+        } else {
+
+        }
+      },
+      enterEditing(item) {
+        this.edittodo = item
+      }
+    },
+    // 监听器
+    watch: {
+      // 监听todolist
+      todoList: {
+        handler: function (val, oldVal) {
+          // 获取被选中是数据
+          let checkedNum = 0;
+          this.todoList.forEach(v => {
+            if (v.completed == true) {
+              checkedNum++
+            }
+          })
+          this.isCheckAll = this.todoList.length == checkedNum
+        },
+        deep: true
+      },
+    },
+    computed: {
+      // 未选中
+      uncheckedNum() {
+        let count = 0
+        // 遍历
+        this.todoList.forEach(v => {
+          if (v.completed == false) {
+            count++
+          }
+
+        })
+        return count
+      },
+      // 根据选中状态生成不同的数据
+      currentlist() {
+        // 根据status来返回不同的值
+        if (this.status == "All") {
+          return this.todoList
+        } else if (this.status == "Active") {
+          // Active找到未完成的
+          let temArr = []
+          this.todoList.forEach(v => {
+            if (v.completed == false) {
+              temArr.push(v)
+            }
+          })
+          return temArr
+        } else {
+          let temArr = []
+          this.todoList.forEach(v => {
+            if (v.completed == true) {
+              temArr.push(v)
+            }
+          })
+          return temArr
+        }
+      }
+    },
+
+    created() {
+      this.todoList = JSON.parse(window.localStorage.getItem('todo24')) || [{
+        content: "你是谁",
+        completed: false
+      }]
+    },
+
+  })
+  window.onbeforeunload = function () {
+    // JSON.stringify 从一个对象中解析出字符串 
+    window.localStorage.setItem('todo24', JSON.stringify(app.todoList))
+  }
+</script>
